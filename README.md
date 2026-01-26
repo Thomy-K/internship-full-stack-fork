@@ -197,3 +197,4 @@ Once the backend is running, access the auto-generated API docs:
 
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
+
