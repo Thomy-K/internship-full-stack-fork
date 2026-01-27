@@ -1,14 +1,22 @@
-export const TOKEN_KEY = "access_token";
+import { emitAuthChanged } from "@/lib/authEvents";
 
-export function getToken(): string | null {
+const KEY = "access_token";
+
+export function getToken() {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(KEY);
 }
 
 export function setToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(KEY, token);
+  emitAuthChanged();
 }
 
 export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(KEY);
+  emitAuthChanged();
+}
+
+export function isLoggedIn() {
+  return !!getToken();
 }

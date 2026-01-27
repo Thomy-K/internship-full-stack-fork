@@ -1,41 +1,133 @@
 "use client";
 
-import { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import PublicOnly from "@/components/PublicOnly";
+import AppShell from "@/components/AppShell";
+import { signup } from "@/services/auth";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "../../lib/api";
+import { toast } from "sonner";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const schema = z.object({
+  email: z
+    .string()
+    .email("Invalid email")
+    .max(120, "Maximum of 120 characters"),
+  password: z
+    .string()
+    .min(8, "Minimum of 8 characters")
+    .max(72, "Maximum of 72 characters"),
+});
+
+type Values = z.infer<typeof schema>;
 
 export default function SignupPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [err, setErr] = useState("");
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setErr("");
+  const form = useForm<Values>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: "", password: "" },
+    mode: "onBlur",
+  });
 
+  const submitting = form.formState.isSubmitting;
+
+  async function onSubmit(values: Values) {
     try {
-      await apiFetch("/api/auth/signup", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
+      await signup(values.email, values.password);
+      toast.success("Account created", { description: "You can now log in." });
       router.push("/login");
-    } catch {
-      setErr("No se pudo crear el usuario. Puede que el email ya exista.");
+    } catch (e: any) {
+      toast.error("Signup failed", { description: e?.message || "Try again." });
     }
   }
 
   return (
-    <main style={{ padding: 16 }}>
-      <h1>Signup</h1>
+    <PublicOnly>
+      <AppShell>
+        <div className="mx-auto max-w-md">
+          <Card>
+            <CardHeader>
+              <CardTitle>Signup</CardTitle>
+              <CardDescription>Create an account.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="grid gap-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="you@example.com"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs text-destructive" />
+                      </FormItem>
+                    )}
+                  />
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 8, maxWidth: 420 }}>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" />
-        <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" type="password" />
-        <button type="submit">Create account</button>
-      </form>
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="********"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs text-destructive" />
+                      </FormItem>
+                    )}
+                  />
 
-      {err && <p>{err}</p>}
-    </main>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? "Creating..." : "Create account"}
+                  </Button>
+
+                  <p className="text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <a className="underline" href="/login">
+                      Log in
+                    </a>
+                  </p>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    </PublicOnly>
   );
 }
